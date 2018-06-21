@@ -1,0 +1,8 @@
+export PGSID=pgsid
+export PGHOME=pghome
+export PGPORT=9999
+export PATH=$PATH:$PGHOME/bin
+export PYTHONPATH=$PGHOME/psycopg2
+export PGDATA=data
+export PGUSER=postgres
+export PGDATABASE=postgres

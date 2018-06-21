@@ -1,0 +1,46 @@
+#!/bin/bash
+
+export PGSID=${PGSID:-kridb}
+export PGPORT=${PGPORT:-5430}
+export PGDATABASE=${PGDATABASE:-postgres}
+export PGDATA=/app/db/postgres/data001/${PGSID}
+export PGUSER=${PGUSER:-postgres}
+export PGPASSWORD=${PGPASSWORD:-krishna}
+export PATH=${PATH}:/app/bin/scripts/postgres:${PGHOME}/bin
+
+sudo mkdir -p /app/db/postgres/data001/${PGSID}
+sudo mkdir -p /app/db/postgres/data001/archivelog
+sudo mkdir -p /app/bin/postgres/bin/config/${PGSID}
+sudo chown postgres:dba /app/db/postgres/data001/${PGSID}
+sudo chown postgres:dba /app/db/postgres/data001/archivelog
+sudo chown -hR postgres:dba /app/bin/postgres/bin/config/${PGSID}
+
+PGHOME1=`echo ${PGHOME} | sed -e 's/\//\\\\\//g'`
+PGDATA1=`echo ${PGDATA} | sed -e 's/\//\\\\\//g'`
+
+if [[ ! -f $PGDATA/PG_VERSION ]]; then
+	sudo echo "${PGPASSWORD}" > /tmp/pwtxt
+	sudo chown postgres:dba /tmp/pwtxt
+	initdb -k --locale=en_US.UTF8 --pwfile=/tmp/pwtxt -D $PGDATA
+	rm /tmp/pwtxt
+	cp /app/bin/scripts/postgres/postgresql.conf.template /app/bin/postgres/bin/config/${PGSID}/${PGSID}_postgresql.conf
+	cp /app/bin/scripts/postgres/pg_hba.conf.template /app/bin/postgres/bin/config/${PGSID}/pg_hba.conf
+	sed -i"" -e "s/^port=[0-9]\+/port=${PGPORT}/g" \
+		  -e "s/^cluster_name=[a-z]\+/cluster_name=${PGSID}/g" \
+		  -e "s/^hba_file=[a-z]\+/hba_file=\'\/app\/bin\/postgres\/bin\/config\/${PGSID}\/pg_hba.conf\'/g" \
+		/app/bin/postgres/bin/config/${PGSID}/${PGSID}_postgresql.conf
+	sed -e "s/^export PGSID=[a-z]\+/export PGSID=${PGSID}/g" \
+	    -e "s/^export PGHOME=[a-z]\+/export PGHOME=${PGHOME1}/g" \
+	    -e "s/^export PGDATA=[a-z]\+/export PGDATA=${PGDATA1}/g" \
+	    -e "s/^export PGPORT=[0-9]\+/export PGPORT=${PGPORT}/g" \
+	    /app/bin/scripts/postgres/pg.pgsid > /app/bin/postgres/bin/config/${PGSID}/pg.${PGSID}
+fi
+
+sudo rm /app/bin/pg.${PGSID}
+echo ". /app/bin/postgres/bin/config/${PGSID}/pg.${PGSID}" >> /app/bin/postgres/.bashrc
+sudo ln -s /app/bin/postgres/bin/config/${PGSID}/pg.${PGSID} /app/bin/pg.${PGSID}
+
+pg_ctl -D $PGDATA stop -m immediate >/dev/null 2>&1
+
+exec postgres -D ${PGDATA} -c config_file=/app/bin/postgres/bin/config/${PGSID}/${PGSID}_postgresql.conf
+

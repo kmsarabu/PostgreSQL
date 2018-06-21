@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: 
+ name : pgdev1
+spec:
+ selector:
+  matchLabels:
+   cluster: pgdev1
+ serviceName: "pgdev1"
+ replicas: 1
+ template:
+  metadata:
+   labels:
+    env: Dev
+    cluster: pgdev1
+  spec: 
+   affinity:
+    podAffinity:
+     requiredDuringSchedulingIgnoredDuringExecution:
+     - labelSelector:
+        matchExpressions:
+        - key: cluster
+          operator: In
+          values:
+          - pgdev1
+       topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+     requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kubeslave1.vmntech.com
+          - kubeslave1
+   containers:
+   - name: pgdev1
+     image: docker.vmntech.com:5000/postgresql:11beta1
+     imagePullPolicy: Always
+     env:
+     - name: PGSID
+       value: "pgdev1"
+     - name: PGPORT
+       value: "5445"
+     - name: PGPASSWORD
+       valueFrom:
+        secretKeyRef:
+          name: pg-password
+          key: password
+     ports:
+     - containerPort: 5445
+       protocol: "TCP"
+     volumeMounts:
+     - name: data001
+       mountPath: /app/db/postgres/data001
+     - name: pgbb
+       mountPath: /app/bin/postgres/bin/config
+ volumeClaimTemplates:
+  - metadata:
+     name : data001  
+    spec:
+     accessModes:
+     - ReadWriteOnce
+     storageClassName: local-storage
+     resources:
+      requests:
+        storage: 6Gi
+  - metadata:
+     name : pgbb
+    spec:
+     accessModes:
+     - ReadWriteOnce
+     storageClassName: local-storage
+     resources:
+      requests:
+        storage: 3Gi
