@@ -38,9 +38,16 @@ Steps:
   c8e56302d433 docker.vmntech.com:5000/postgresql:11beta1   "/app/bin/dbe/postg..."   53 seconds ago      Up 52 seconds  elegant_clarke
 
   $ docker exec -it c8e56302d433 /bin/bash
+
   bash-4.2$ psql
+
   psql (11beta1)
+
   Type "help" for help.
+
   postgres=# \q
+
   bash-4.2$ echo $PGHOME
+
   /app/bin/postgres/product/server/11beta1
+
